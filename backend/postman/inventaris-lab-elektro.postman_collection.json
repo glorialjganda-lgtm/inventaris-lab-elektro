@@ -1,0 +1,160 @@
+{
+  "info": {
+    "name": "Inventaris Lab Elektro",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000" },
+    { "key": "admin_token", "value": "" },
+    { "key": "kepala_lab_token", "value": "" },
+    { "key": "dosen_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@elektro.test\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login kepala lab",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"kepala.eld@elektro.test\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login dosen",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"rina@elektro.test\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Auth me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master Data",
+      "item": [
+        { "name": "Users", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/users" } },
+        { "name": "Laboratories", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/laboratories" } },
+        { "name": "Categories", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/categories" } },
+        { "name": "Equipments", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/equipments" } }
+      ]
+    },
+    {
+      "name": "Borrowings",
+      "item": [
+        { "name": "List borrowings", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/borrowings" } },
+        {
+          "name": "Create borrowing",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{dosen_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"equipment_ids\": [\"1\"],\n  \"tanggal_pinjam\": \"2026-06-05\",\n  \"tanggal_kembali_rencana\": \"2026-06-07\",\n  \"keperluan\": \"praktikum\",\n  \"nama_kegiatan\": \"Praktikum Elektronika Dasar\",\n  \"catatan_pengajuan\": \"Digunakan untuk praktikum rangkaian dasar.\"\n}" },
+            "url": "{{base_url}}/api/borrowings"
+          }
+        },
+        { "name": "Approve borrowing", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/borrowings/1/approve" } },
+        {
+          "name": "Reject borrowing",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"alasan_penolakan\": \"Alat sedang dibutuhkan untuk kegiatan laboratorium.\"\n}" },
+            "url": "{{base_url}}/api/borrowings/1/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Returns",
+      "item": [
+        { "name": "List returns", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/returns" } },
+        {
+          "name": "Create return",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{dosen_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"borrowing_id\": \"1\",\n  \"tanggal_pengembalian\": \"2026-06-07\",\n  \"catatan_pengembalian\": \"Alat telah dikembalikan.\"\n}" },
+            "url": "{{base_url}}/api/returns"
+          }
+        },
+        {
+          "name": "Verify return",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status_pengembalian\": \"diterima\",\n  \"catatan_pengembalian\": \"Semua alat kembali dengan baik.\",\n  \"details\": [\n    {\n      \"equipment_id\": \"1\",\n      \"kondisi_sesudah\": \"baik\",\n      \"status_akhir_alat\": \"tersedia\",\n      \"catatan\": \"Alat baik.\"\n    }\n  ]\n}" },
+            "url": "{{base_url}}/api/returns/1/verify"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Maintenances",
+      "item": [
+        { "name": "List maintenances", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/maintenances" } },
+        {
+          "name": "Create maintenance",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"equipment_id\": \"1\",\n  \"tanggal_perawatan\": \"2026-06-05\",\n  \"jenis_perawatan\": \"perbaikan\",\n  \"deskripsi_masalah\": \"Probe tidak terbaca stabil.\",\n  \"tindakan\": \"Pemeriksaan konektor dan kalibrasi ulang.\",\n  \"biaya\": 150000,\n  \"status\": \"proses\",\n  \"catatan\": \"Perlu pengecekan lanjutan.\"\n}" },
+            "url": "{{base_url}}/api/maintenances"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stocks",
+      "item": [
+        { "name": "List stocks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/stocks" } },
+        {
+          "name": "Create stock",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"lab_id\": \"1\",\n  \"nama_barang\": \"Kabel Jumper Male to Male\",\n  \"kategori\": \"Komponen Elektronika\",\n  \"jumlah\": 100,\n  \"satuan\": \"pcs\",\n  \"stok_minimum\": 20,\n  \"lokasi\": \"Rak Komponen A4\"\n}" },
+            "url": "{{base_url}}/api/stocks"
+          }
+        },
+        {
+          "name": "Create stock transaction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tipe_transaksi\": \"keluar\",\n  \"jumlah\": 10,\n  \"keterangan\": \"Digunakan untuk praktikum.\"\n}" },
+            "url": "{{base_url}}/api/stocks/1/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Inventory report", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/reports/inventory" } },
+        { "name": "Borrowings report", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/reports/borrowings" } },
+        { "name": "Maintenances report", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/reports/maintenances" } },
+        { "name": "Stocks report", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }], "url": "{{base_url}}/api/reports/stocks" } }
+      ]
+    }
+  ]
+}

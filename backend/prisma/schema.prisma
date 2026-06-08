@@ -1,0 +1,418 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model activity_logs {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt?  @db.UnsignedBigInt
+  aktivitas  String   @db.VarChar(150)
+  modul      String   @db.VarChar(100)
+  deskripsi  String?  @db.Text
+  ip_address String?  @db.VarChar(50)
+  user_agent String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  users      users?   @relation(fields: [user_id], references: [id], map: "fk_activity_logs_user")
+
+  @@index([created_at], map: "idx_activity_logs_created_at")
+  @@index([modul], map: "idx_activity_logs_modul")
+  @@index([user_id], map: "idx_activity_logs_user_id")
+}
+
+model borrowing_details {
+  id              BigInt                             @id @default(autoincrement()) @db.UnsignedBigInt
+  borrowing_id    BigInt                             @db.UnsignedBigInt
+  equipment_id    BigInt                             @db.UnsignedBigInt
+  kondisi_sebelum borrowing_details_kondisi_sebelum  @default(baik)
+  kondisi_sesudah borrowing_details_kondisi_sesudah?
+  catatan         String?                            @db.Text
+  created_at      DateTime                           @default(now()) @db.Timestamp(0)
+  updated_at      DateTime                           @default(now()) @db.Timestamp(0)
+  borrowings      borrowings                         @relation(fields: [borrowing_id], references: [id], onDelete: Cascade, map: "fk_borrowing_details_borrowing")
+  equipments      equipments                         @relation(fields: [equipment_id], references: [id], map: "fk_borrowing_details_equipment")
+
+  @@unique([borrowing_id, equipment_id], map: "uq_borrowing_equipment")
+  @@index([equipment_id], map: "idx_borrowing_details_equipment_id")
+}
+
+model borrowings {
+  id                                     BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_peminjaman                        String               @unique(map: "kode_peminjaman") @db.VarChar(50)
+  dosen_id                               BigInt               @db.UnsignedBigInt
+  mahasiswa_id                           BigInt?              @db.UnsignedBigInt
+  lab_id                                 BigInt               @db.UnsignedBigInt
+  tanggal_pinjam                         DateTime             @db.Date
+  tanggal_kembali_rencana                DateTime             @db.Date
+  tanggal_kembali_aktual                 DateTime?            @db.Date
+  keperluan                              borrowings_keperluan
+  nama_kegiatan                          String               @db.VarChar(150)
+  status                                 borrowings_status    @default(menunggu)
+  dosen_approval_status                  borrowings_dosen_approval_status @default(not_required)
+  dosen_approval_note                    String?              @db.Text
+  dosen_approved_at                      DateTime?            @db.DateTime(0)
+  disetujui_oleh                         BigInt?              @db.UnsignedBigInt
+  tanggal_disetujui                      DateTime?            @db.DateTime(0)
+  catatan_pengajuan                      String?              @db.Text
+  catatan_persetujuan                    String?              @db.Text
+  alasan_penolakan                       String?              @db.Text
+  created_at                             DateTime             @default(now()) @db.Timestamp(0)
+  updated_at                             DateTime             @default(now()) @db.Timestamp(0)
+  borrowing_details                      borrowing_details[]
+  users_borrowings_disetujui_olehTousers users?               @relation("borrowings_disetujui_olehTousers", fields: [disetujui_oleh], references: [id], map: "fk_borrowings_approver")
+  users_borrowings_dosen_idTousers       users                @relation("borrowings_dosen_idTousers", fields: [dosen_id], references: [id], map: "fk_borrowings_dosen")
+  users_borrowings_mahasiswa_idTousers   users?               @relation("borrowings_mahasiswa_idTousers", fields: [mahasiswa_id], references: [id], map: "fk_borrowings_mahasiswa")
+  laboratories                           laboratories         @relation(fields: [lab_id], references: [id], map: "fk_borrowings_lab")
+  returns                                returns?
+
+  @@index([disetujui_oleh], map: "fk_borrowings_approver")
+  @@index([dosen_id], map: "idx_borrowings_dosen_id")
+  @@index([mahasiswa_id], map: "idx_borrowings_mahasiswa_id")
+  @@index([lab_id], map: "idx_borrowings_lab_id")
+  @@index([status], map: "idx_borrowings_status")
+  @@index([dosen_approval_status], map: "idx_borrowings_dosen_approval_status")
+  @@index([tanggal_pinjam], map: "idx_borrowings_tanggal_pinjam")
+}
+
+model categories {
+  id            BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_kategori String            @unique(map: "kode_kategori") @db.VarChar(30)
+  nama_kategori String            @db.VarChar(150)
+  deskripsi     String?           @db.Text
+  status        categories_status @default(aktif)
+  created_at    DateTime          @default(now()) @db.Timestamp(0)
+  updated_at    DateTime          @default(now()) @db.Timestamp(0)
+  equipments    equipments[]
+
+  @@index([status], map: "idx_categories_status")
+}
+
+model consumable_stocks {
+  id                 BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  lab_id             BigInt                   @db.UnsignedBigInt
+  nama_barang        String                   @db.VarChar(150)
+  kategori           String?                  @db.VarChar(100)
+  jumlah             Int                      @default(0)
+  satuan             String                   @default("pcs") @db.VarChar(30)
+  stok_minimum       Int                      @default(0)
+  lokasi             String?                  @db.VarChar(150)
+  status             consumable_stocks_status @default(aman)
+  created_at         DateTime                 @default(now()) @db.Timestamp(0)
+  updated_at         DateTime                 @default(now()) @db.Timestamp(0)
+  laboratories       laboratories             @relation(fields: [lab_id], references: [id], map: "fk_consumable_stocks_lab")
+  stock_transactions stock_transactions[]
+
+  @@index([lab_id], map: "idx_consumable_stocks_lab_id")
+  @@index([status], map: "idx_consumable_stocks_status")
+}
+
+model equipments {
+  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_inventaris     String              @unique(map: "kode_inventaris") @db.VarChar(50)
+  nama_alat           String              @db.VarChar(150)
+  lab_id              BigInt              @db.UnsignedBigInt
+  category_id         BigInt              @db.UnsignedBigInt
+  merek               String?             @db.VarChar(100)
+  model               String?             @db.VarChar(100)
+  nomor_seri          String?             @db.VarChar(100)
+  tahun_pengadaan     Int?                @db.Year
+  sumber_dana         String?             @db.VarChar(150)
+  harga               Decimal             @default(0.00) @db.Decimal(15, 2)
+  kondisi             equipments_kondisi  @default(baik)
+  status              equipments_status   @default(tersedia)
+  lokasi_detail       String?             @db.VarChar(150)
+  penanggung_jawab_id BigInt?             @db.UnsignedBigInt
+  foto                String?             @db.VarChar(255)
+  dokumen             String?             @db.VarChar(255)
+  keterangan          String?             @db.Text
+  created_at          DateTime            @default(now()) @db.Timestamp(0)
+  updated_at          DateTime            @default(now()) @db.Timestamp(0)
+  borrowing_details   borrowing_details[]
+  categories          categories          @relation(fields: [category_id], references: [id], map: "fk_equipments_category")
+  laboratories        laboratories        @relation(fields: [lab_id], references: [id], map: "fk_equipments_lab")
+  users               users?              @relation(fields: [penanggung_jawab_id], references: [id], map: "fk_equipments_penanggung_jawab")
+  maintenances        maintenances[]
+  return_details      return_details[]
+
+  @@index([penanggung_jawab_id], map: "fk_equipments_penanggung_jawab")
+  @@index([category_id], map: "idx_equipments_category_id")
+  @@index([kondisi], map: "idx_equipments_kondisi")
+  @@index([lab_id], map: "idx_equipments_lab_id")
+  @@index([status], map: "idx_equipments_status")
+  @@index([tahun_pengadaan], map: "idx_equipments_tahun_pengadaan")
+}
+
+model laboratories {
+  id                                      BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_lab                                String              @unique(map: "kode_lab") @db.VarChar(30)
+  nama_lab                                String              @db.VarChar(150)
+  lokasi                                  String?             @db.VarChar(150)
+  kepala_lab_id                           BigInt?             @db.UnsignedBigInt
+  kepala_lab_nama                         String?             @db.VarChar(150)
+  deskripsi                               String?             @db.Text
+  status                                  laboratories_status @default(aktif)
+  created_at                              DateTime            @default(now()) @db.Timestamp(0)
+  updated_at                              DateTime            @default(now()) @db.Timestamp(0)
+  borrowings                              borrowings[]
+  consumable_stocks                       consumable_stocks[]
+  equipments                              equipments[]
+  users_laboratories_kepala_lab_idTousers users?              @relation("laboratories_kepala_lab_idTousers", fields: [kepala_lab_id], references: [id], map: "fk_laboratories_kepala_lab")
+  maintenances                            maintenances[]
+  users_users_lab_idTolaboratories        users[]             @relation("users_lab_idTolaboratories")
+
+  @@index([kepala_lab_id], map: "idx_laboratories_kepala_lab_id")
+  @@index([status], map: "idx_laboratories_status")
+}
+
+model maintenances {
+  id                  BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_perawatan      String                       @unique(map: "kode_perawatan") @db.VarChar(50)
+  equipment_id        BigInt                       @db.UnsignedBigInt
+  lab_id              BigInt                       @db.UnsignedBigInt
+  tanggal_perawatan   DateTime                     @db.Date
+  jenis_perawatan     maintenances_jenis_perawatan
+  deskripsi_masalah   String?                      @db.Text
+  tindakan            String?                      @db.Text
+  penanggung_jawab_id BigInt?                      @db.UnsignedBigInt
+  biaya               Decimal                      @default(0.00) @db.Decimal(15, 2)
+  status              maintenances_status          @default(proses)
+  foto_bukti          String?                      @db.VarChar(255)
+  catatan             String?                      @db.Text
+  created_at          DateTime                     @default(now()) @db.Timestamp(0)
+  updated_at          DateTime                     @default(now()) @db.Timestamp(0)
+  equipments          equipments                   @relation(fields: [equipment_id], references: [id], map: "fk_maintenances_equipment")
+  laboratories        laboratories                 @relation(fields: [lab_id], references: [id], map: "fk_maintenances_lab")
+  users               users?                       @relation(fields: [penanggung_jawab_id], references: [id], map: "fk_maintenances_penanggung_jawab")
+
+  @@index([penanggung_jawab_id], map: "fk_maintenances_penanggung_jawab")
+  @@index([equipment_id], map: "idx_maintenances_equipment_id")
+  @@index([jenis_perawatan], map: "idx_maintenances_jenis")
+  @@index([lab_id], map: "idx_maintenances_lab_id")
+  @@index([status], map: "idx_maintenances_status")
+}
+
+model return_details {
+  id                BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  return_id         BigInt                           @db.UnsignedBigInt
+  equipment_id      BigInt                           @db.UnsignedBigInt
+  kondisi_sebelum   return_details_kondisi_sebelum
+  kondisi_sesudah   return_details_kondisi_sesudah
+  status_akhir_alat return_details_status_akhir_alat
+  catatan           String?                          @db.Text
+  foto_bukti        String?                          @db.VarChar(255)
+  created_at        DateTime                         @default(now()) @db.Timestamp(0)
+  updated_at        DateTime                         @default(now()) @db.Timestamp(0)
+  equipments        equipments                       @relation(fields: [equipment_id], references: [id], map: "fk_return_details_equipment")
+  returns           returns                          @relation(fields: [return_id], references: [id], onDelete: Cascade, map: "fk_return_details_return")
+
+  @@unique([return_id, equipment_id], map: "uq_return_equipment")
+  @@index([equipment_id], map: "idx_return_details_equipment_id")
+}
+
+model returns {
+  id                                     BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  kode_pengembalian                      String                      @unique(map: "kode_pengembalian") @db.VarChar(50)
+  borrowing_id                           BigInt                      @unique(map: "borrowing_id") @db.UnsignedBigInt
+  diajukan_oleh                          BigInt                      @db.UnsignedBigInt
+  tanggal_pengembalian                   DateTime                    @db.Date
+  diverifikasi_oleh                      BigInt?                     @db.UnsignedBigInt
+  tanggal_verifikasi                     DateTime?                   @db.DateTime(0)
+  status_pengembalian                    returns_status_pengembalian @default(menunggu_verifikasi)
+  catatan_pengembalian                   String?                     @db.Text
+  foto_bukti                             String?                     @db.VarChar(255)
+  created_at                             DateTime                    @default(now()) @db.Timestamp(0)
+  updated_at                             DateTime                    @default(now()) @db.Timestamp(0)
+  return_details                         return_details[]
+  borrowings                             borrowings                  @relation(fields: [borrowing_id], references: [id], onDelete: Cascade, map: "fk_returns_borrowing")
+  users_returns_diajukan_olehTousers     users                       @relation("returns_diajukan_olehTousers", fields: [diajukan_oleh], references: [id], map: "fk_returns_diajukan_oleh")
+  users_returns_diverifikasi_olehTousers users?                      @relation("returns_diverifikasi_olehTousers", fields: [diverifikasi_oleh], references: [id], map: "fk_returns_diverifikasi_oleh")
+
+  @@index([diajukan_oleh], map: "fk_returns_diajukan_oleh")
+  @@index([diverifikasi_oleh], map: "fk_returns_diverifikasi_oleh")
+  @@index([status_pengembalian], map: "idx_returns_status_pengembalian")
+  @@index([tanggal_pengembalian], map: "idx_returns_tanggal_pengembalian")
+}
+
+model stock_transactions {
+  id                BigInt                            @id @default(autoincrement()) @db.UnsignedBigInt
+  stock_id          BigInt                            @db.UnsignedBigInt
+  tipe_transaksi    stock_transactions_tipe_transaksi
+  jumlah            Int
+  stok_sebelum      Int                               @default(0)
+  stok_sesudah      Int                               @default(0)
+  keterangan        String?                           @db.Text
+  user_id           BigInt?                           @db.UnsignedBigInt
+  tanggal           DateTime                          @default(now()) @db.DateTime(0)
+  created_at        DateTime                          @default(now()) @db.Timestamp(0)
+  updated_at        DateTime                          @default(now()) @db.Timestamp(0)
+  consumable_stocks consumable_stocks                 @relation(fields: [stock_id], references: [id], onDelete: Cascade, map: "fk_stock_transactions_stock")
+  users             users?                            @relation(fields: [user_id], references: [id], map: "fk_stock_transactions_user")
+
+  @@index([user_id], map: "fk_stock_transactions_user")
+  @@index([stock_id], map: "idx_stock_transactions_stock_id")
+  @@index([tanggal], map: "idx_stock_transactions_tanggal")
+  @@index([tipe_transaksi], map: "idx_stock_transactions_tipe")
+}
+
+model users {
+  id                                             BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                           String               @db.VarChar(150)
+  email                                          String               @unique(map: "email") @db.VarChar(150)
+  password_hash                                  String               @db.VarChar(255)
+  role                                           users_role
+  nomor_induk                                    String?              @db.VarChar(50)
+  no_hp                                          String?              @db.VarChar(30)
+  lab_id                                         BigInt?              @db.UnsignedBigInt
+  status                                         users_status         @default(aktif)
+  last_login_at                                  DateTime?            @db.DateTime(0)
+  created_at                                     DateTime             @default(now()) @db.Timestamp(0)
+  updated_at                                     DateTime             @default(now()) @db.Timestamp(0)
+  activity_logs                                  activity_logs[]
+  borrowings_borrowings_disetujui_olehTousers    borrowings[]         @relation("borrowings_disetujui_olehTousers")
+  borrowings_borrowings_dosen_idTousers          borrowings[]         @relation("borrowings_dosen_idTousers")
+  borrowings_borrowings_mahasiswa_idTousers      borrowings[]         @relation("borrowings_mahasiswa_idTousers")
+  equipments                                     equipments[]
+  laboratories_laboratories_kepala_lab_idTousers laboratories[]       @relation("laboratories_kepala_lab_idTousers")
+  maintenances                                   maintenances[]
+  returns_returns_diajukan_olehTousers           returns[]            @relation("returns_diajukan_olehTousers")
+  returns_returns_diverifikasi_olehTousers       returns[]            @relation("returns_diverifikasi_olehTousers")
+  stock_transactions                             stock_transactions[]
+  laboratories_users_lab_idTolaboratories        laboratories?        @relation("users_lab_idTolaboratories", fields: [lab_id], references: [id], map: "fk_users_lab")
+
+  @@index([lab_id], map: "idx_users_lab_id")
+  @@index([role], map: "idx_users_role")
+  @@index([status], map: "idx_users_status")
+}
+
+enum stock_transactions_tipe_transaksi {
+  masuk
+  keluar
+  penyesuaian
+}
+
+enum borrowing_details_kondisi_sebelum {
+  baik
+  rusak_ringan
+  rusak_berat
+  hilang
+}
+
+enum return_details_kondisi_sebelum {
+  baik
+  rusak_ringan
+  rusak_berat
+  hilang
+}
+
+enum borrowing_details_kondisi_sesudah {
+  baik
+  rusak_ringan
+  rusak_berat
+  hilang
+}
+
+enum categories_status {
+  aktif
+  nonaktif
+}
+
+enum return_details_kondisi_sesudah {
+  baik
+  rusak_ringan
+  rusak_berat
+  hilang
+}
+
+enum users_role {
+  admin_jurusan
+  kepala_lab
+  dosen
+  mahasiswa
+}
+
+enum borrowings_dosen_approval_status {
+  not_required
+  menunggu
+  disetujui
+  ditolak
+}
+
+enum maintenances_jenis_perawatan {
+  rutin
+  perbaikan
+  kalibrasi
+  penggantian_komponen
+  pemeriksaan_keamanan
+}
+
+enum return_details_status_akhir_alat {
+  tersedia
+  dipinjam
+  dalam_perawatan
+  tidak_aktif
+}
+
+enum laboratories_status {
+  aktif
+  nonaktif
+}
+
+enum borrowings_keperluan {
+  praktikum
+  penelitian
+  tugas_akhir
+  pengujian
+  proyek
+  lainnya
+}
+
+enum returns_status_pengembalian {
+  menunggu_verifikasi
+  diterima
+  diterima_dengan_catatan
+  ditolak
+}
+
+enum consumable_stocks_status {
+  aman
+  menipis
+  habis
+}
+
+enum users_status {
+  aktif
+  nonaktif
+}
+
+enum borrowings_status {
+  menunggu
+  disetujui
+  ditolak
+  dipinjam
+  pengembalian_diajukan
+  selesai
+  terlambat
+}
+
+enum maintenances_status {
+  proses
+  selesai
+  gagal
+}
+
+enum equipments_kondisi {
+  baik
+  rusak_ringan
+  rusak_berat
+  hilang
+}
+
+enum equipments_status {
+  tersedia
+  dipinjam
+  dalam_perawatan
+  tidak_aktif
+}
