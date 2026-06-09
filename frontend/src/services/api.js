@@ -1,8 +1,14 @@
 import { getToken } from "../utils/auth.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const LOCAL_API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? LOCAL_API_BASE_URL : "");
+
+if (!API_BASE_URL) {
+  console.error("VITE_API_BASE_URL belum diset untuk build production.");
+}
+
 const OFFLINE_MESSAGE =
-  "Backend tidak terhubung. Pastikan server backend berjalan di http://localhost:5000";
+  "Backend tidak terhubung. Pastikan server backend berjalan dan VITE_API_BASE_URL sudah benar.";
 
 const buildHeaders = () => {
   const headers = {
@@ -34,6 +40,10 @@ const parseResponse = async (response) => {
 };
 
 const request = async (method, endpoint, data) => {
+  if (!API_BASE_URL) {
+    throw new Error("VITE_API_BASE_URL belum diset.");
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method,

@@ -16,7 +16,26 @@ const reportRoutes = require("./routes/report.routes");
 
 const app = express();
 
-app.use(cors());
+const localOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const frontendOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : [];
+const allowedOrigins =
+  process.env.NODE_ENV === "production" && frontendOrigins.length > 0
+    ? frontendOrigins
+    : [...localOrigins, ...frontendOrigins];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin tidak diizinkan oleh CORS"));
+    },
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
